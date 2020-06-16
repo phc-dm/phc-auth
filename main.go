@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/gorilla/mux"
 )
 
 // AuthenticationService è l'intero servizio di autenticazione,
@@ -19,53 +18,77 @@ type AuthenticationService struct {
 	conn   *ldap.Conn
 }
 
+func newLdapConnection() *ldap.Conn {
+	conn, err := ldap.DialURL("ldap://blabla.ldap.it")
+
+	if err != nil {
+		log.Fatal("Ldap connection error", err)
+	}
+
+	return conn
+}
+
+func newAuthenticationService(Addr string) *AuthenticationService {
+
+	service := &AuthenticationService{}
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/status", service.statusHandler)
+	mux.HandleFunc("/auth", service.authHandler)
+
+	service.server = &http.Server{
+		Handler:      mux,
+		Addr:         Addr,
+		WriteTimeout: 1 * time.Second,
+		ReadTimeout:  1 * time.Second,
+	}
+
+	service.conn = newLdapConnection()
+
+	return service
+}
+
+// ListenAndServe starts the server and returns if there are errors
+func (service *AuthenticationService) ListenAndServe() error {
+	return service.server.ListenAndServe()
+}
+
 // AuthRequest è una richiesta di autenticazione
 type AuthRequest struct {
 	Username, Password string
 }
 
-func (service *AuthenticationService) statusHandler(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "online\n")
+func (service *AuthenticationService) statusHandler(res http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(res, "online\n")
 }
 
-func (service *AuthenticationService) authHandler(w http.ResponseWriter, req *http.Request) {
+func (service *AuthenticationService) authHandler(res http.ResponseWriter, req *http.Request) {
 
-	var authRequest AuthRequest
+	if req.Method != http.MethodPost {
+		http.Error(res, "Only POST requests allowed", http.StatusNotFound)
+		return
+	}
 
-	body, _ := ioutil.ReadAll(req.Body)
-
-	err := json.Unmarshal([]byte(body), &authRequest)
+	body, err := ioutil.ReadAll(req.Body)
 
 	if err != nil {
 		log.Fatal(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 
-	fmt.Fprint(w, false)
+	var authRequest AuthRequest
+
+	if err := json.Unmarshal([]byte(body), &authRequest); err != nil {
+		log.Fatal(err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
+	fmt.Fprint(res, false)
 
 }
 
 func main() {
-
-	service := &AuthenticationService{}
-
-	r := mux.NewRouter()
-	r.HandleFunc("/status", service.statusHandler)
-	r.HandleFunc("/auth", service.authHandler).Methods("POST")
-
-	// conn, err := ldap.DialURL("ldap://blabla.ldap.it")
-
-	// if err != nil {
-	// 	log.Fatal("Ldap connection error", err)
-	// }
-
-	service.server = &http.Server{
-		Handler:      r,
-		Addr:         "localhost:5353",
-		WriteTimeout: 1 * time.Second,
-		ReadTimeout:  1 * time.Second,
-	}
-	// service.conn = conn
-
-	log.Fatal(service.server.ListenAndServe())
+	service := newAuthenticationService(":5353")
+	log.Fatal(service.ListenAndServe())
 }
