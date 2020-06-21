@@ -14,12 +14,26 @@ func httpError(res http.ResponseWriter, err error) {
 	log.Println(err)
 }
 
-// LoginRequest è una richiesta di autenticazione
+// LoginRequest rappresenta una richiesta di autenticazione in JSON
 type LoginRequest struct {
 	Username, Password string
 }
 
-func (service *AuthenticationService) loginHandler(res http.ResponseWriter, req *http.Request) {
+func (service *Service) createSession(username UserUID, password string) Token {
+	token := Token(GenerateRandomString(16))
+	session := &UserSession{
+		Username: username,
+		Password: password,
+		Token:    token,
+	}
+
+	service.sessionFromUsername[username] = session
+	service.sessionFromToken[token] = session
+
+	return token
+}
+
+func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
 		httpError(res, errors.New("Only POST requests allowed"))
@@ -40,31 +54,29 @@ func (service *AuthenticationService) loginHandler(res http.ResponseWriter, req 
 		return
 	}
 
-	user, err := service.Login(loginRequest.Username, loginRequest.Password)
-	if err != nil {
-		httpError(res, err)
+	username := UserUID(loginRequest.Username)
+
+	loginErr := service.CheckPassword(username, loginRequest.Password)
+	if loginErr != nil {
+		httpError(res, loginErr)
 		return
 	}
 
-	token := GenerateRandomString(16)
-	service.sessions[user.Username] = &UserSession{
-		User:  *user,
-		Token: token,
-	}
+	token := service.createSession(username, loginRequest.Password)
 
-	log.Printf("Created new token \"%s\" for user @%s", token, user.Username)
+	log.Printf("Created new token \"%s\" for user @%s", token, username)
 
 	fmt.Fprint(res, token)
 }
 
-func (service *AuthenticationService) queryHandler(res http.ResponseWriter, req *http.Request) {
+func (service *Service) queryHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
 		httpError(res, errors.New("Only GET requests allowed"))
 		return
 	}
 
-	username := req.FormValue("username")
+	username := UserUID(req.FormValue("username"))
 
 	user, err := service.GetUser(username)
 
@@ -83,12 +95,31 @@ func (service *AuthenticationService) queryHandler(res http.ResponseWriter, req 
 	res.Write(userJSON)
 }
 
-// UpdateUserPropertyRequest ...
-type UpdateUserPropertyRequest struct {
-	Username, Token, Property, Value string
+func (service *Service) tokenHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		httpError(res, errors.New("Only GET requests allowed"))
+		return
+	}
+
+	username := UserUID(req.FormValue("username"))
+
+	session, ok := service.sessionFromUsername[username]
+
+	if !ok {
+		http.Error(res, "User not found", http.StatusNotFound)
+		return
+	}
+
+	fmt.Fprint(res, session.Token)
 }
 
-func (service *AuthenticationService) updateHandler(res http.ResponseWriter, req *http.Request) {
+// UpdateUserPropertyRequest rappresenta una richiesta di cambio di attributo su ldap
+type UpdateUserPropertyRequest struct {
+	Token, Property, Value string
+}
+
+func (service *Service) updateHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
 		httpError(res, errors.New("Only POST requests allowed"))
@@ -109,13 +140,14 @@ func (service *AuthenticationService) updateHandler(res http.ResponseWriter, req
 		return
 	}
 
-	session, ok := service.sessions[UserUID(updateRequest.Username)]
-	if ok && session.Token != updateRequest.Token {
+	token := Token(updateRequest.Token)
+	session, ok := service.sessionFromToken[token]
+	if !ok {
 		http.Error(res, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	// TODO: Do actual change of the prop
+	service.UpdateUserProperty(session.Username, session.Password, updateRequest.Property, updateRequest.Value)
 
 	fmt.Fprint(res, true)
 

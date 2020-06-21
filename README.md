@@ -23,7 +23,9 @@ Servizio di autenticazione attraverso LDAP
 
     Distrugge il token dell'utente `<username>` o eventualmente dell'utente associato a `<token>`.
 
-[ ] `GET /q?username=<username>`
+[ ] `GET /token?username=<username>`
+
+[x] `GET /q?username=<username>`
 
     Ritorna tutte le informazioni pubbliche dell'utente `<username>` fornite da LDAP.
 
@@ -31,8 +33,6 @@ Servizio di autenticazione attraverso LDAP
 
     ```json
     {
-        // Username of the user
-        "username": "<username>",
         // A valid token for the given user  
         "token": "<token>",
         // Name of the property to change  
