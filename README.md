@@ -4,7 +4,7 @@ Servizio di autenticazione attraverso LDAP
 
 ## Interfaccia
 
-- `POST /login`
+[x] `POST /login`
 
     ```
     { 
@@ -15,7 +15,7 @@ Servizio di autenticazione attraverso LDAP
 
     Controlla le cretenziali dell'utente `<username>` siano `<password>` e ritorna un token identificativo per richieste successive (se un token è già associato all'utente ne crea uno nuovo).
 
-- `POST /logout`
+[ ] `POST /logout`
 
     ```
     { "username": "<username>" } | { "token": "<token>" }
@@ -23,16 +23,21 @@ Servizio di autenticazione attraverso LDAP
 
     Distrugge il token dell'utente `<username>` o eventualmente dell'utente associato a `<token>`.
 
-- `GET /info?username=<username>`
+[ ] `GET /q?username=<username>`
 
     Ritorna tutte le informazioni pubbliche dell'utente `<username>` fornite da LDAP.
 
-- `POST /update`
+[ ] `POST /update`
 
-    ```
+    ```json
     {
+        // Username of the user
+        "username": "<username>",
+        // A valid token for the given user  
         "token": "<token>",
+        // Name of the property to change  
         "property": "<email | ...>",
+        // New value to set
         "value": "<value>"
     }
     ```

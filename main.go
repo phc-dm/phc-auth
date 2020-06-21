@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -11,40 +9,91 @@ import (
 	"github.com/go-ldap/ldap/v3"
 )
 
+// UserType corrisponde alla "descrizione" dell'utente di ldap
+type UserType int
+
+// UserUID corrisponde all'uid dell'utente su ldap ed è una stringa unica che identifica l'utente
+type UserUID string
+
+const (
+	_ UserType = iota
+	// Studente su ldap è `studente`
+	Studente
+	// Esterno su ldap è `esterno`
+	Esterno
+	// Dottorando su ldap è `dottorando`
+	Dottorando
+
+	// Unknown per quando il campo è assente o non riconosciuto
+	Unknown
+)
+
+var userTypeDescriptionMap = map[string]UserType{
+	"studente":   Studente,
+	"esterno":    Esterno,
+	"dottornado": Dottorando,
+}
+
+// User ...
+type User struct {
+	Username UserUID
+
+	ID          int
+	Name        string
+	Surname     string
+	Email       string
+	Description UserType
+
+	// On ldap this is gecos
+	FullName string
+}
+
+// UserSession ...
+type UserSession struct {
+	User  User
+	Token string
+}
+
 // AuthenticationService è l'intero servizio di autenticazione,
 // contiene la connessione con ldap ed il server http
 type AuthenticationService struct {
-	server *http.Server
-	conn   *ldap.Conn
+	// LdapURL è l'url per il server di ldap
+	LdapURL string
+	// LdapBaseDN è il domino base di Ldap. Sotto questo dominio ci sono tutte le persone
+	LdapBaseDN string
+
+	server   *http.Server
+	sessions map[UserUID]*UserSession
 }
 
-func newLdapConnection() *ldap.Conn {
-	conn, err := ldap.DialURL("ldap://blabla.ldap.it")
-
-	if err != nil {
-		log.Fatal("Ldap connection error", err)
-	}
-
-	return conn
+// NewLdapConnection ...
+func (service *AuthenticationService) NewLdapConnection() (*ldap.Conn, error) {
+	return ldap.DialURL(service.LdapURL)
 }
 
-func newAuthenticationService(Addr string) *AuthenticationService {
-
-	service := &AuthenticationService{}
-
+func (service *AuthenticationService) newMux() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/status", service.statusHandler)
-	mux.HandleFunc("/auth", service.authHandler)
+	mux.HandleFunc("/login", service.loginHandler)
+	mux.HandleFunc("/q", service.queryHandler)
 
+	return mux
+}
+
+func newAuthenticationService(addr, url, baseDN string) *AuthenticationService {
+
+	service := &AuthenticationService{}
+	service.LdapURL = url
+	service.LdapBaseDN = baseDN
+
+	mux := service.newMux()
 	service.server = &http.Server{
 		Handler:      mux,
-		Addr:         Addr,
+		Addr:         addr,
 		WriteTimeout: 1 * time.Second,
 		ReadTimeout:  1 * time.Second,
 	}
-
-	service.conn = newLdapConnection()
 
 	return service
 }
@@ -54,41 +103,12 @@ func (service *AuthenticationService) ListenAndServe() error {
 	return service.server.ListenAndServe()
 }
 
-// AuthRequest è una richiesta di autenticazione
-type AuthRequest struct {
-	Username, Password string
-}
-
 func (service *AuthenticationService) statusHandler(res http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(res, "online\n")
-}
 
-func (service *AuthenticationService) authHandler(res http.ResponseWriter, req *http.Request) {
-
-	if req.Method != http.MethodPost {
-		http.Error(res, "Only POST requests allowed", http.StatusNotFound)
-		return
-	}
-
-	body, err := ioutil.ReadAll(req.Body)
-
-	if err != nil {
-		log.Fatal(err)
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-
-	var authRequest AuthRequest
-
-	if err := json.Unmarshal([]byte(body), &authRequest); err != nil {
-		log.Fatal(err)
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-
-	fmt.Fprint(res, false)
-
+	fmt.Fprint(res, true)
 }
 
 func main() {
-	service := newAuthenticationService(":5353")
+	service := newAuthenticationService(":5353", "ldaps://service", "ou=People,dc=phc,dc=unipi,dc=it")
 	log.Fatal(service.ListenAndServe())
 }
