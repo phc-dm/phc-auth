@@ -42,6 +42,7 @@ type Session struct {
 func (service *Service) CreateSession(username UserUID, password string) Token {
 
 	if session, ok := service.sessionFromUsername[username]; ok {
+		log.Printf("Sending old token \"%s\" for user \"%s\"\n", session.Token, username)
 		return session.Token
 	}
 
@@ -56,6 +57,8 @@ func (service *Service) CreateSession(username UserUID, password string) Token {
 	service.sessionFromUsername[username] = session
 	service.sessionFromToken[token] = session
 
+	log.Printf("Generated new token \"%s\" for user \"%s\"\n", session.Token, username)
+
 	return token
 }
 
@@ -63,6 +66,8 @@ func (service *Service) CreateSession(username UserUID, password string) Token {
 func (service *Service) DestroySession(session *Session) {
 	delete(service.sessionFromUsername, session.Username)
 	delete(service.sessionFromToken, session.Token)
+
+	log.Printf("Destroied session for user \"%s\" with token \"%s\"\n", session.Username, session.Token)
 }
 
 func (service *Service) newMux() *http.ServeMux {

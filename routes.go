@@ -52,8 +52,6 @@ func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request)
 
 	token := service.CreateSession(username, loginRequest.Password)
 
-	log.Printf("Created new token \"%s\" for user @%s\n", token, username)
-
 	fmt.Fprint(res, token)
 }
 
