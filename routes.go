@@ -85,7 +85,7 @@ func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request
 		token := Token(*logoutRequest.Token)
 		service.DestroySession(service.sessionFromToken[token])
 	} else {
-		httpError(res, errors.New("Invalid logout request, at least a token or a username field should be provided"))
+		httpError(res, errors.New("Missing token"))
 		return
 	}
 
