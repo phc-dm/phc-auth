@@ -77,6 +77,9 @@ func NewAuthenticationService(addr, url, baseDN string) *Service {
 	service.LdapURL = url
 	service.LdapBaseDN = baseDN
 
+	service.sessionFromUsername = make(map[UserUID]*Session)
+	service.sessionFromToken = make(map[Token]*Session)
+
 	mux := service.newMux()
 	service.server = &http.Server{
 		Handler:      mux,

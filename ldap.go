@@ -21,26 +21,14 @@ type User struct {
 }
 
 // UserType corrisponde alla "descrizione" dell'utente di ldap
-type UserType int
+type UserType string
 
+// Descrizioni scoperte per ora
 const (
-	_ UserType = iota
-	// Studente su ldap è `studente`
-	Studente
-	// Esterno su ldap è `esterno`
-	Esterno
-	// Dottorando su ldap è `dottorando`
-	Dottorando
-
-	// Unknown per quando il campo è assente o non riconosciuto
-	Unknown
+	Studente   UserType = "studente"
+	Esterno    UserType = "esterno"
+	Dottorando UserType = "dottorando"
 )
-
-var userTypeDescriptionMap = map[string]UserType{
-	"studente":   Studente,
-	"esterno":    Esterno,
-	"dottornado": Dottorando,
-}
 
 var attributesToRetrive = []string{
 	"dn",
@@ -125,7 +113,7 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 		return nil, err
 	}
 
-	description := userTypeDescriptionMap[entry.GetAttributeValue("description")]
+	description := UserType(entry.GetAttributeValue("description"))
 	return &User{
 		Username: UserUID(entry.GetAttributeValue("uid")),
 
