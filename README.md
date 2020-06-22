@@ -18,22 +18,6 @@ Servizio di autenticazione attraverso LDAP
 - `POST /logout`
 
     ```json
-    {
-        "username": "<username>"
-    }
-    ```
-
-    or
-
-    ```json
-    {
-        "token": "<token>"
-    }
-    ```
-
-- `POST /logout`
-
-    ```json
     { "username": "<username>" } | { "token": "<token>" }
     ```
 
@@ -43,11 +27,15 @@ Servizio di autenticazione attraverso LDAP
 
     Ritorna il token associato all'utente
 
+- `GET /q`
+
+    Ritorna una lista degli utenti con tutte le informazioni pubbliche fornite da LDAP.
+
 - `GET /q?username=<username>`
 
     Ritorna tutte le informazioni pubbliche dell'utente `<username>` fornite da LDAP.
 
-- `POST /update`
+- **TODO** `POST /update`
 
     ```json
     {
@@ -61,6 +49,27 @@ Servizio di autenticazione attraverso LDAP
     ```
 
     Cambia la proprietà `<property>` dell'utente associato a `<token>` con il nuovo valore fornito.
+
+- **TODO** `POST /change-password`
+
+    ```json
+    {
+        // A valid token for the given user  
+        "token": "<token>",
+        // New password
+        "password": "<new-password>",
+    }
+    ```
+
+    Cambia la password dell'utente associato a `<token>` con `<new-password>`
+
+- **TODO?** `POST /renewtoken`
+
+    ```json
+    { "token": "<token>" }
+    ```
+
+    Genera un nuovo token associato alla sessione per l'utente.
 
 - `GET /debug`
 

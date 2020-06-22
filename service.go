@@ -34,15 +34,18 @@ type Session struct {
 	// bisogna vedere meglio come funge l'accesso con SASL con DIGEST-MD5
 	Password string
 	Username UserUID
+
+	CreatedOn time.Time
 }
 
 // CreateSession ...
 func (service *Service) CreateSession(username UserUID, password string) Token {
 	token := Token(GenerateRandomString(16))
 	session := &Session{
-		Username: username,
-		Password: password,
-		Token:    token,
+		Username:  username,
+		Password:  password,
+		Token:     token,
+		CreatedOn: time.Now(),
 	}
 
 	service.sessionFromUsername[username] = session

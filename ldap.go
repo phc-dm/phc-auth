@@ -10,14 +10,14 @@ import (
 
 // User ...
 type User struct {
-	Username UserUID `ldap:"uid"`
+	Username UserUID `ldap:"uid" json:"username"`
 
-	ID          int      `ldap:"uidNumber"`
-	Name        string   `ldap:"givenName"`
-	Surname     string   `ldap:"sn"`
-	Email       string   `ldap:"mail"`
-	Description UserType `ldap:"description"`
-	FullName    string   `ldap:"gecos"`
+	ID          int      `ldap:"uidNumber"   json:"id"`
+	Name        string   `ldap:"givenName"   json:"name"`
+	Surname     string   `ldap:"sn"          json:"surname"`
+	Email       string   `ldap:"mail"        json:"email"`
+	Description UserType `ldap:"description" json:"description"`
+	FullName    string   `ldap:"gecos"       json:"fullname"`
 }
 
 // UserType corrisponde alla "descrizione" dell'utente di ldap
