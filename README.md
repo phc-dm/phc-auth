@@ -18,7 +18,7 @@ Servizio di autenticazione attraverso LDAP
 - `POST /logout`
 
     ```json
-    { "username": "<username>" } | { "token": "<token>" }
+    { "token": "<token>" }
     ```
 
     Distrugge il token dell'utente `<username>` o eventualmente dell'utente associato a `<token>`.

@@ -72,7 +72,6 @@ func (service *Service) newMux() *http.ServeMux {
 	mux.HandleFunc("/login", service.loginHandler)
 	mux.HandleFunc("/logout", service.logoutHandler)
 	mux.HandleFunc("/q", service.queryHandler)
-	mux.HandleFunc("/token", service.tokenHandler)
 
 	mux.HandleFunc("/debug", service.debugHandler)
 

@@ -59,8 +59,7 @@ func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request)
 
 // LogoutRequest ...
 type LogoutRequest struct {
-	Username *string `json:"username,omitempty"`
-	Token    *string `json:"token,omitempty"`
+	Token *string `json:"token,omitempty"`
 }
 
 func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request) {
@@ -84,10 +83,7 @@ func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if logoutRequest.Username != nil {
-		username := UserUID(*logoutRequest.Username)
-		service.DestroySession(service.sessionFromUsername[username])
-	} else if logoutRequest.Token != nil {
+	if logoutRequest.Token != nil {
 		token := Token(*logoutRequest.Token)
 		service.DestroySession(service.sessionFromToken[token])
 	} else {
@@ -140,25 +136,6 @@ func (service *Service) queryHandler(res http.ResponseWriter, req *http.Request)
 		res.Header().Set("Content-Type", "application/json")
 		res.Write(usersJSON)
 	}
-}
-
-func (service *Service) tokenHandler(res http.ResponseWriter, req *http.Request) {
-
-	if req.Method != http.MethodGet {
-		httpError(res, errors.New("Only GET requests allowed"))
-		return
-	}
-
-	username := UserUID(req.FormValue("username"))
-
-	session, ok := service.sessionFromUsername[username]
-
-	if !ok {
-		http.Error(res, "This user doesn't have a session", http.StatusNotFound)
-		return
-	}
-
-	fmt.Fprint(res, session.Token)
 }
 
 // UpdateUserPropertyRequest rappresenta una richiesta di cambio di attributo su ldap
