@@ -105,23 +105,41 @@ func (service *Service) queryHandler(res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	username := UserUID(req.FormValue("username"))
+	if req.FormValue("username") != "" {
+		username := UserUID(req.FormValue("username"))
 
-	user, err := service.GetUser(username)
+		user, err := service.GetUser(username)
 
-	if err != nil {
-		http.Error(res, "User not found", http.StatusNotFound)
-		return
+		if err != nil {
+			http.Error(res, "User not found", http.StatusNotFound)
+			return
+		}
+
+		userJSON, err := json.Marshal(user)
+		if err != nil {
+			httpError(res, err)
+			return
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		res.Write(userJSON)
+	} else {
+		users, err := service.GetUsers()
+
+		if err != nil {
+			http.Error(res, "User not found", http.StatusNotFound)
+			return
+		}
+
+		usersJSON, err := json.Marshal(users)
+		if err != nil {
+			httpError(res, err)
+			return
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		res.Write(usersJSON)
 	}
-
-	userJSON, err := json.Marshal(user)
-	if err != nil {
-		httpError(res, err)
-		return
-	}
-
-	res.Header().Set("Content-Type", "application/json")
-	res.Write(userJSON)
 }
 
 func (service *Service) tokenHandler(res http.ResponseWriter, req *http.Request) {

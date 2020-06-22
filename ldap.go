@@ -114,6 +114,7 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 	}
 
 	description := UserType(entry.GetAttributeValue("description"))
+
 	return &User{
 		Username: UserUID(entry.GetAttributeValue("uid")),
 
@@ -124,6 +125,59 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 		Email:       entry.GetAttributeValue("mail"),
 		Description: description,
 	}, nil
+}
+
+// GetUsers by creating a new connection and quering ldap
+func (service *Service) GetUsers() ([]User, error) {
+	conn, err := service.NewLdapConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	return service.getUsersWithConn(conn)
+}
+
+// getUsersWithConn gets informations about the asked user using a given ldap connection
+func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]User, error) {
+
+	searchRequest := ldap.NewSearchRequest(
+		service.LdapBaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		"(uid=*)",
+		attributesToRetrive,
+		nil,
+	)
+
+	searchResult, err := conn.Search(searchRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]User, 0)
+
+	for _, entry := range searchResult.Entries {
+
+		uidNumber, err := strconv.ParseUint(entry.GetAttributeValue("uidNumber"), 10, 32)
+		if err != nil {
+			return nil, err
+		}
+
+		description := UserType(entry.GetAttributeValue("description"))
+
+		users = append(users, User{
+			Username: UserUID(entry.GetAttributeValue("uid")),
+
+			ID:          int(uidNumber),
+			Name:        entry.GetAttributeValue("givenName"),
+			Surname:     entry.GetAttributeValue("sn"),
+			FullName:    entry.GetAttributeValue("gecos"),
+			Email:       entry.GetAttributeValue("mail"),
+			Description: description,
+		})
+	}
+
+	return users, nil
 }
 
 // UpdateUserProperty ...
