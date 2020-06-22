@@ -63,6 +63,10 @@ Servizio di autenticazione attraverso LDAP
 
     Cambia la password dell'utente associato a `<token>` con `<new-password>`
 
+- **TODO?** `GET /token?username=<username>`
+
+    Ritorna il token dell'utente richiesto.
+
 - **TODO?** `POST /renewtoken`
 
     ```json

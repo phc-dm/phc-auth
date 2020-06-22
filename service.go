@@ -40,6 +40,11 @@ type Session struct {
 
 // CreateSession ...
 func (service *Service) CreateSession(username UserUID, password string) Token {
+
+	if session, ok := service.sessionFromUsername[username]; ok {
+		return session.Token
+	}
+
 	token := Token(GenerateRandomString(16))
 	session := &Session{
 		Username:  username,
