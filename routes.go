@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,20 +19,6 @@ func httpError(res http.ResponseWriter, err error) {
 // LoginRequest rappresenta una richiesta di autenticazione in JSON
 type LoginRequest struct {
 	Username, Password string
-}
-
-func (service *Service) createSession(username UserUID, password string) Token {
-	token := Token(GenerateRandomString(16))
-	session := &UserSession{
-		Username: username,
-		Password: password,
-		Token:    token,
-	}
-
-	service.sessionFromUsername[username] = session
-	service.sessionFromToken[token] = session
-
-	return token
 }
 
 func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request) {
@@ -62,11 +50,52 @@ func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	token := service.createSession(username, loginRequest.Password)
+	token := service.CreateSession(username, loginRequest.Password)
 
-	log.Printf("Created new token \"%s\" for user @%s", token, username)
+	log.Printf("Created new token \"%s\" for user @%s\n", token, username)
 
 	fmt.Fprint(res, token)
+}
+
+// LogoutRequest ...
+type LogoutRequest struct {
+	Username *string `json:"username,omitempty"`
+	Token    *string `json:"token,omitempty"`
+}
+
+func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodPost {
+		httpError(res, errors.New("Only POST requests allowed"))
+		return
+	}
+
+	body, err := ioutil.ReadAll(req.Body)
+
+	if err != nil {
+		httpError(res, err)
+		return
+	}
+
+	var logoutRequest LogoutRequest
+
+	if err := json.Unmarshal([]byte(body), &logoutRequest); err != nil {
+		httpError(res, err)
+		return
+	}
+
+	if logoutRequest.Username != nil {
+		username := UserUID(*logoutRequest.Username)
+		service.DestroySession(service.sessionFromUsername[username])
+	} else if logoutRequest.Token != nil {
+		token := Token(*logoutRequest.Token)
+		service.DestroySession(service.sessionFromToken[token])
+	} else {
+		httpError(res, errors.New("Invalid logout request, at least a token or a username field should be provided"))
+		return
+	}
+
+	fmt.Fprint(res, true)
 }
 
 func (service *Service) queryHandler(res http.ResponseWriter, req *http.Request) {
@@ -107,7 +136,7 @@ func (service *Service) tokenHandler(res http.ResponseWriter, req *http.Request)
 	session, ok := service.sessionFromUsername[username]
 
 	if !ok {
-		http.Error(res, "User not found", http.StatusNotFound)
+		http.Error(res, "This user doesn't have a session", http.StatusNotFound)
 		return
 	}
 
@@ -151,4 +180,43 @@ func (service *Service) updateHandler(res http.ResponseWriter, req *http.Request
 
 	fmt.Fprint(res, true)
 
+}
+
+func (service *Service) statusHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		httpError(res, errors.New("Only GET requests allowed"))
+		return
+	}
+
+	conn, err := service.NewLdapConnection()
+	if err != nil {
+		fmt.Fprint(res, false)
+		return
+	}
+	defer conn.Close()
+
+	fmt.Fprint(res, true)
+}
+
+func (service *Service) debugHandler(res http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		httpError(res, errors.New("Only GET requests allowed"))
+		return
+	}
+
+	log.Printf("Currently %d stored sessions\n", len(service.sessionFromUsername))
+	for username, session := range service.sessionFromUsername {
+
+		h := md5.New()
+		io.WriteString(h, session.Password)
+
+		logSession := *session
+		logSession.Password = fmt.Sprintf("%x", h.Sum(nil))
+
+		log.Printf("Session for @%s %+v\n", username, logSession)
+	}
+
+	fmt.Fprint(res, "Logged service information")
 }

@@ -3,20 +3,58 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/go-ldap/ldap/v3"
 )
 
+// User ...
+type User struct {
+	Username UserUID `ldap:"uid"`
+
+	ID          int      `ldap:"uidNumber"`
+	Name        string   `ldap:"givenName"`
+	Surname     string   `ldap:"sn"`
+	Email       string   `ldap:"mail"`
+	Description UserType `ldap:"description"`
+	FullName    string   `ldap:"gecos"`
+}
+
+// UserType corrisponde alla "descrizione" dell'utente di ldap
+type UserType int
+
+const (
+	_ UserType = iota
+	// Studente su ldap è `studente`
+	Studente
+	// Esterno su ldap è `esterno`
+	Esterno
+	// Dottorando su ldap è `dottorando`
+	Dottorando
+
+	// Unknown per quando il campo è assente o non riconosciuto
+	Unknown
+)
+
+var userTypeDescriptionMap = map[string]UserType{
+	"studente":   Studente,
+	"esterno":    Esterno,
+	"dottornado": Dottorando,
+}
+
 var attributesToRetrive = []string{
 	"dn",
 	"cn",
-	"sn",
-	"givenName",
-	"mail",
+
 	"uid",
+	"uidNumber",
+	"givenName",
+	"sn",
+	"gecos",
+	"mail",
+	"description",
 	"homeDirectory",
 	"loginShell",
-	"gecos",
 }
 
 // NewLdapConnection ...
@@ -82,8 +120,16 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 
 	entry := searchResult.Entries[0]
 
+	uidNumber, err := strconv.ParseInt(entry.GetAttributeValue("uidNumber"), 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
 	description := userTypeDescriptionMap[entry.GetAttributeValue("description")]
 	return &User{
+		Username: UserUID(entry.GetAttributeValue("uid")),
+
+		ID:          int(uidNumber),
 		Name:        entry.GetAttributeValue("givenName"),
 		Surname:     entry.GetAttributeValue("sn"),
 		FullName:    entry.GetAttributeValue("gecos"),
