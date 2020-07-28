@@ -37,7 +37,7 @@ Servizio di autenticazione attraverso LDAP
 
 - **TODO** `POST /update`
 
-    ```json
+    ```js
     {
         // A valid token for the given user  
         "token": "<token>",
@@ -52,7 +52,7 @@ Servizio di autenticazione attraverso LDAP
 
 - **TODO** `POST /change-password`
 
-    ```json
+    ```js
     {
         // A valid token for the given user  
         "token": "<token>",
