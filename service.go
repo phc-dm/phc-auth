@@ -6,7 +6,7 @@ import (
 	"time"
 
 	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
-	. "phc.dm.xxxxx.xx/auth-poisson/user"
+	. "github.com/phc-dm/auth-poisson/user"
 )
 
 // Service è l'intero servizio di autenticazione,

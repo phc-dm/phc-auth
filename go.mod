@@ -1,4 +1,4 @@
-module phc.dm.xxxxx.xx/auth-poisson
+module github.com/phc-dm/auth-poisson
 
 go 1.14
 
