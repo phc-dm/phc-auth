@@ -9,6 +9,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
+	. "phc.dm.xxxxx.xx/auth-poisson/user"
 )
 
 func httpError(res http.ResponseWriter, err error) {

@@ -6,28 +6,9 @@ import (
 	"strconv"
 
 	"github.com/go-ldap/ldap/v3"
-)
 
-// User ...
-type User struct {
-	Username UserUID `ldap:"uid" json:"username"`
-
-	ID          int      `ldap:"uidNumber"   json:"id"`
-	Name        string   `ldap:"givenName"   json:"name"`
-	Surname     string   `ldap:"sn"          json:"surname"`
-	Email       string   `ldap:"mail"        json:"email"`
-	Description UserType `ldap:"description" json:"description"`
-	FullName    string   `ldap:"gecos"       json:"fullname"`
-}
-
-// UserType corrisponde alla "descrizione" dell'utente di ldap
-type UserType string
-
-// Descrizioni scoperte per ora
-const (
-	Studente   UserType = "studente"
-	Esterno    UserType = "esterno"
-	Dottorando UserType = "dottorando"
+	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
+	. "phc.dm.xxxxx.xx/auth-poisson/user"
 )
 
 var attributesToRetrive = []string{
@@ -113,7 +94,7 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 		return nil, err
 	}
 
-	description := UserType(entry.GetAttributeValue("description"))
+	description := UserRole(entry.GetAttributeValue("description"))
 
 	return &User{
 		Username: UserUID(entry.GetAttributeValue("uid")),
@@ -163,7 +144,7 @@ func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]User, error) {
 			return nil, err
 		}
 
-		description := UserType(entry.GetAttributeValue("description"))
+		description := UserRole(entry.GetAttributeValue("description"))
 
 		users = append(users, User{
 			Username: UserUID(entry.GetAttributeValue("uid")),

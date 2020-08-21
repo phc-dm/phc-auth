@@ -1,4 +1,4 @@
-module phc.dm.unipi.it/aziis98/auth-poisson
+module phc.dm.xxxxx.xx/auth-poisson
 
 go 1.14
 

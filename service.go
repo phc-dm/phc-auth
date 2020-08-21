@@ -4,6 +4,9 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
+	. "phc.dm.xxxxx.xx/auth-poisson/user"
 )
 
 // Service è l'intero servizio di autenticazione,
@@ -18,24 +21,6 @@ type Service struct {
 
 	sessionFromUsername map[UserUID]*Session
 	sessionFromToken    map[Token]*Session
-}
-
-// UserUID corrisponde all'uid dell'utente su ldap ed è una stringa unica che identifica l'utente
-type UserUID string
-
-// Token è un alias che rappresenta un token di accesso collegato ad una sessione
-type Token string
-
-// Session ...
-type Session struct {
-	Token Token
-
-	// Per ora pare che Ldap non supporti direttamente l'accesso attraverso digest md5,
-	// bisogna vedere meglio come funge l'accesso con SASL con DIGEST-MD5
-	Password string
-	Username UserUID
-
-	CreatedOn time.Time
 }
 
 // CreateSession ...
