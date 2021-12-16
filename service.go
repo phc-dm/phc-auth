@@ -5,9 +5,24 @@ import (
 	"net/http"
 	"time"
 
-	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
-	. "github.com/phc-dm/auth-poisson/user"
+	"github.com/phc-dm/auth-poisson/model"
 )
+
+// Token è un alias che rappresenta un token di accesso collegato ad una sessione
+type UserSessionToken string
+
+// Session rappresenta una sessione di un utente associata al servizio di autenticazione, è salvata
+// in memoria quindi l'utente dovrà ottenere un nuovo token in caso di riavvio.
+type Session struct {
+	Token UserSessionToken
+
+	// TODO: Per ora pare che LDAP non supporti direttamente l'accesso attraverso digest md5,
+	// bisogna vedere meglio come funge l'accesso con SASL con DIGEST-MD5
+	Password string
+	Username model.UserUID
+
+	CreatedOn time.Time
+}
 
 // Service è l'intero servizio di autenticazione,
 // contiene i dati per connettersi con ldap ed il server http
@@ -19,19 +34,19 @@ type Service struct {
 
 	server *http.Server
 
-	sessionFromUsername map[UserUID]*Session
-	sessionFromToken    map[Token]*Session
+	sessionFromUsername map[model.UserUID]*Session
+	sessionFromToken    map[UserSessionToken]*Session
 }
 
 // CreateSession ...
-func (service *Service) CreateSession(username UserUID, password string) Token {
+func (service *Service) CreateSession(username model.UserUID, password string) UserSessionToken {
 
 	if session, ok := service.sessionFromUsername[username]; ok {
 		log.Printf("Sending old token \"%s\" for user \"%s\"\n", session.Token, username)
 		return session.Token
 	}
 
-	token := Token(GenerateRandomString(16))
+	token := UserSessionToken(GenerateRandomString(16))
 	session := &Session{
 		Username:  username,
 		Password:  password,
@@ -74,8 +89,8 @@ func NewAuthenticationService(addr, url, baseDN string) *Service {
 	service.LdapURL = url
 	service.LdapBaseDN = baseDN
 
-	service.sessionFromUsername = make(map[UserUID]*Session)
-	service.sessionFromToken = make(map[Token]*Session)
+	service.sessionFromUsername = make(map[model.UserUID]*Session)
+	service.sessionFromToken = make(map[UserSessionToken]*Session)
 
 	mux := service.newMux()
 	service.server = &http.Server{

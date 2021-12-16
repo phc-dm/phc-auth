@@ -6,9 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-ldap/ldap/v3"
-
-	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
-	. "github.com/phc-dm/auth-poisson/user"
+	"github.com/phc-dm/auth-poisson/model"
 )
 
 var attributesToRetrive = []string{
@@ -31,7 +29,7 @@ func (service *Service) NewLdapConnection() (*ldap.Conn, error) {
 	return ldap.DialURL(service.LdapURL)
 }
 
-func (service *Service) loginWithConn(conn *ldap.Conn, username UserUID, password string) error {
+func (service *Service) loginWithConn(conn *ldap.Conn, username model.UserUID, password string) error {
 
 	usernameDN := fmt.Sprintf("uid=%s,%s", username, service.LdapBaseDN)
 
@@ -45,7 +43,7 @@ func (service *Service) loginWithConn(conn *ldap.Conn, username UserUID, passwor
 }
 
 // CheckPassword takes a username and a password and does a ldap "bind" to check that the username and password are correct.
-func (service *Service) CheckPassword(username UserUID, password string) error {
+func (service *Service) CheckPassword(username model.UserUID, password string) error {
 	conn, err := service.NewLdapConnection()
 	if err != nil {
 		return err
@@ -56,7 +54,7 @@ func (service *Service) CheckPassword(username UserUID, password string) error {
 }
 
 // GetUser by creating a new connection and quering ldap
-func (service *Service) GetUser(username UserUID) (*User, error) {
+func (service *Service) GetUser(username model.UserUID) (*model.User, error) {
 	conn, err := service.NewLdapConnection()
 	if err != nil {
 		return nil, err
@@ -67,7 +65,7 @@ func (service *Service) GetUser(username UserUID) (*User, error) {
 }
 
 // getUserWithConn gets informations about the asked user using a given ldap connection
-func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*User, error) {
+func (service *Service) getUserWithConn(conn *ldap.Conn, username model.UserUID) (*model.User, error) {
 
 	ldapFilter := fmt.Sprintf("(uid=%s)", username)
 	searchRequest := ldap.NewSearchRequest(
@@ -84,7 +82,7 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 	}
 
 	if len(searchResult.Entries) != 1 {
-		return nil, fmt.Errorf("Invalid number of entries from LDAP, got %d", len(searchResult.Entries))
+		return nil, fmt.Errorf("invalid number of entries from LDAP, got %d", len(searchResult.Entries))
 	}
 
 	entry := searchResult.Entries[0]
@@ -94,10 +92,10 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 		return nil, err
 	}
 
-	description := UserRole(entry.GetAttributeValue("description"))
+	description := model.UserRole(entry.GetAttributeValue("description"))
 
-	return &User{
-		Username: UserUID(entry.GetAttributeValue("uid")),
+	return &model.User{
+		Username: model.UserUID(entry.GetAttributeValue("uid")),
 
 		ID:          int(uidNumber),
 		Name:        entry.GetAttributeValue("givenName"),
@@ -109,7 +107,7 @@ func (service *Service) getUserWithConn(conn *ldap.Conn, username UserUID) (*Use
 }
 
 // GetUsers by creating a new connection and quering ldap
-func (service *Service) GetUsers() ([]User, error) {
+func (service *Service) GetUsers() ([]*model.User, error) {
 	conn, err := service.NewLdapConnection()
 	if err != nil {
 		return nil, err
@@ -120,7 +118,7 @@ func (service *Service) GetUsers() ([]User, error) {
 }
 
 // getUsersWithConn gets informations about the asked user using a given ldap connection
-func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]User, error) {
+func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]*model.User, error) {
 
 	searchRequest := ldap.NewSearchRequest(
 		service.LdapBaseDN,
@@ -135,7 +133,7 @@ func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]User, error) {
 		return nil, err
 	}
 
-	users := make([]User, 0)
+	users := []*model.User{}
 
 	for _, entry := range searchResult.Entries {
 
@@ -144,10 +142,10 @@ func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]User, error) {
 			return nil, err
 		}
 
-		description := UserRole(entry.GetAttributeValue("description"))
+		description := model.UserRole(entry.GetAttributeValue("description"))
 
-		users = append(users, User{
-			Username: UserUID(entry.GetAttributeValue("uid")),
+		users = append(users, &model.User{
+			Username: model.UserUID(entry.GetAttributeValue("uid")),
 
 			ID:          int(uidNumber),
 			Name:        entry.GetAttributeValue("givenName"),
@@ -162,7 +160,7 @@ func (service *Service) getUsersWithConn(conn *ldap.Conn) ([]User, error) {
 }
 
 // UpdateUserProperty ...
-func (service *Service) UpdateUserProperty(username UserUID, password, property, newValue string) error {
+func (service *Service) UpdateUserProperty(username model.UserUID, password, property, newValue string) error {
 	conn, err := service.NewLdapConnection()
 	if err != nil {
 		return err
@@ -172,7 +170,7 @@ func (service *Service) UpdateUserProperty(username UserUID, password, property,
 	return service.updateUserPropertyWithConn(conn, username, password, property, newValue)
 }
 
-func (service *Service) updateUserPropertyWithConn(conn *ldap.Conn, username UserUID, password, property, newValue string) error {
+func (service *Service) updateUserPropertyWithConn(conn *ldap.Conn, username model.UserUID, password, property, newValue string) error {
 
 	loginErr := service.loginWithConn(conn, username, password)
 	if loginErr != nil {
@@ -186,7 +184,7 @@ func (service *Service) updateUserPropertyWithConn(conn *ldap.Conn, username Use
 }
 
 // UpdateUserPassword ...
-func (service *Service) UpdateUserPassword(username UserUID, password, newPassword string) error {
+func (service *Service) UpdateUserPassword(username model.UserUID, password, newPassword string) error {
 	conn, err := service.NewLdapConnection()
 	if err != nil {
 		return err
@@ -196,7 +194,7 @@ func (service *Service) UpdateUserPassword(username UserUID, password, newPasswo
 	return service.updateUserPasswordWithConn(conn, username, password, newPassword)
 }
 
-func (service *Service) updateUserPasswordWithConn(conn *ldap.Conn, username UserUID, password, newPassword string) error {
+func (service *Service) updateUserPasswordWithConn(conn *ldap.Conn, username model.UserUID, password, newPassword string) error {
 
 	loginErr := service.loginWithConn(conn, username, password)
 	if loginErr != nil {

@@ -10,8 +10,7 @@ import (
 	"log"
 	"net/http"
 
-	// TODO: Per ora c'è questo perché "user.User" non è il top, pianificare un eventuale refactor
-	. "github.com/phc-dm/auth-poisson/user"
+	"github.com/phc-dm/auth-poisson/model"
 )
 
 func httpError(res http.ResponseWriter, err error) {
@@ -27,7 +26,7 @@ type LoginRequest struct {
 func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
-		httpError(res, errors.New("Only POST requests allowed"))
+		httpError(res, errors.New("only POST requests allowed"))
 		return
 	}
 
@@ -45,7 +44,7 @@ func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	username := UserUID(loginRequest.Username)
+	username := model.UserUID(loginRequest.Username)
 
 	loginErr := service.CheckPassword(username, loginRequest.Password)
 	if loginErr != nil {
@@ -58,15 +57,10 @@ func (service *Service) loginHandler(res http.ResponseWriter, req *http.Request)
 	fmt.Fprint(res, token)
 }
 
-// LogoutRequest ...
-type LogoutRequest struct {
-	Token *string `json:"token,omitempty"`
-}
-
 func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
-		httpError(res, errors.New("Only POST requests allowed"))
+		httpError(res, errors.New("only POST requests allowed"))
 		return
 	}
 
@@ -77,7 +71,9 @@ func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	var logoutRequest LogoutRequest
+	var logoutRequest struct {
+		Token *string `json:"token,omitempty"`
+	}
 
 	if err := json.Unmarshal([]byte(body), &logoutRequest); err != nil {
 		httpError(res, err)
@@ -85,10 +81,10 @@ func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request
 	}
 
 	if logoutRequest.Token != nil {
-		token := Token(*logoutRequest.Token)
+		token := UserSessionToken(*logoutRequest.Token)
 		service.DestroySession(service.sessionFromToken[token])
 	} else {
-		httpError(res, errors.New("Missing token"))
+		httpError(res, errors.New("missing token"))
 		return
 	}
 
@@ -98,12 +94,12 @@ func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request
 func (service *Service) queryHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
-		httpError(res, errors.New("Only GET requests allowed"))
+		httpError(res, errors.New("only GET requests allowed"))
 		return
 	}
 
 	if req.FormValue("username") != "" {
-		username := UserUID(req.FormValue("username"))
+		username := model.UserUID(req.FormValue("username"))
 
 		user, err := service.GetUser(username)
 
@@ -147,7 +143,7 @@ type UpdateUserPropertyRequest struct {
 func (service *Service) updateHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
-		httpError(res, errors.New("Only POST requests allowed"))
+		httpError(res, errors.New("only POST requests allowed"))
 		return
 	}
 
@@ -165,7 +161,7 @@ func (service *Service) updateHandler(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	token := Token(updateRequest.Token)
+	token := UserSessionToken(updateRequest.Token)
 	session, ok := service.sessionFromToken[token]
 	if !ok {
 		http.Error(res, "Invalid token", http.StatusUnauthorized)
@@ -181,7 +177,7 @@ func (service *Service) updateHandler(res http.ResponseWriter, req *http.Request
 func (service *Service) statusHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
-		httpError(res, errors.New("Only GET requests allowed"))
+		httpError(res, errors.New("only GET requests allowed"))
 		return
 	}
 
@@ -198,7 +194,7 @@ func (service *Service) statusHandler(res http.ResponseWriter, req *http.Request
 func (service *Service) debugHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
-		httpError(res, errors.New("Only GET requests allowed"))
+		httpError(res, errors.New("only GET requests allowed"))
 		return
 	}
 
