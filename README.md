@@ -27,11 +27,11 @@ Servizio di autenticazione attraverso LDAP
 
     Ritorna il token associato all'utente
 
-- `GET /q`
+- `GET /users`
 
     Ritorna una lista degli utenti con tutte le informazioni pubbliche fornite da LDAP.
 
-- `GET /q?username=<username>`
+- `GET /users?username=<username>`
 
     Ritorna tutte le informazioni pubbliche dell'utente `<username>` fornite da LDAP.
 
@@ -62,18 +62,6 @@ Servizio di autenticazione attraverso LDAP
     ```
 
     Cambia la password dell'utente associato a `<token>` con `<new-password>`
-
-- **TODO?** `GET /token?username=<username>`
-
-    Ritorna il token dell'utente richiesto.
-
-- **TODO?** `POST /renewtoken`
-
-    ```json
-    { "token": "<token>" }
-    ```
-
-    Genera un nuovo token associato alla sessione per l'utente.
 
 - `GET /debug`
 

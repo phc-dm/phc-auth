@@ -91,7 +91,7 @@ func (service *Service) logoutHandler(res http.ResponseWriter, req *http.Request
 	fmt.Fprint(res, true)
 }
 
-func (service *Service) queryHandler(res http.ResponseWriter, req *http.Request) {
+func (service *Service) usersHandler(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
 		httpError(res, errors.New("only GET requests allowed"))
